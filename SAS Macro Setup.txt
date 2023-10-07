@@ -1,0 +1,52 @@
+/*Initial Set Up*/
+filename pwfile 'C:\Users\uXXXX\Desktop\Job\Init';
+**Run this if you are encrypting your pwd for the first time;
+/*
+proc pwencode in='your PW' out=pwfile;
+run;
+*/
+
+
+options symbolgen;
+data _null_;
+infile pwfile truncover;
+input line :$50.;
+call symputx('dbpass',line);
+run;
+
+
+%let uid = uXXXX;
+%let prtname = PrjName;
+%let period = YYYYQrt;
+%let startdate = 'YYYY-MM-DD';
+%let enddate = 'YYYY-MM-DD';
+
+
+options dlcreatedir; 
+
+/*----------------- Create directories if they do not exist *----------------------*/
+
+OPTIONS MPRINT MSTORED SASMSTORE=macrodir ORIENTATION=PORTRAIT;
+LIBNAME macrodir "\\ad-ent\...\Standard Code";
+LIBNAME prtdir "\\ad-ent\...\&prtname-&period";
+LIBNAME dlerdd ODBC USER="&uid" PASSWORD="&dbpass" DSN="WHLSP-LDAP" CONNECTION=GLOBAL bulkload=no insertbuff=1000   SCHEMA=DL_ERDD;
+
+---------------------------------------------------------------------------------------------------------------------------------------
+%getAlltranSummary (uid=&uid, pwd=&dbpass, PRT=&prtname, period=&period, startdate=&startdate, enddate=&enddate);
+---------------------------------------------------------------------------------------------------------------------------------------
+
+
+/*Creat SAS Macro and Compile it to store the precedure.*/
+LIBNAME macrodir '\\ad-ent\...\Standard Code';
+OPTIONS MPRINT MSTORED SASMSTORE=macrodir ORIENTATION=PORTRAIT;
+
+%MACRO getAlltranSummary (uid=, pwd=, PRT=, period=, startdate=, enddate=) /store SOURCE;
+PROC SQL;
+CONNECT TO ODBC(USER=&uid PASSWORD="&pwd"  DSN='EIWP-LDAP');
+EXECUTE(
+	…
+) by odbc;
+
+DISCONNECT FROM odbc;
+QUIT;
+%MEND getAlltranSummary;
